@@ -1,27 +1,18 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
+
+const sleep = (ms: number) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const topic = body?.topic;
 
-    if (!topic || typeof topic !== "string") {
+    if (!topic || typeof topic !== "string" || !topic.trim()) {
       return NextResponse.json(
-        {
-          error: "Please enter a valid topic.",
-        },
-        { status: 400 }
-      );
-    }
-
-    const cleanTopic = topic.trim();
-
-    if (!cleanTopic) {
-      return NextResponse.json(
-        {
-          error: "Please enter a topic.",
-        },
+        { error: "Please enter a valid topic." },
         { status: 400 }
       );
     }
@@ -29,12 +20,8 @@ export async function POST(request: Request) {
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      console.error("GEMINI_API_KEY is missing.");
-
       return NextResponse.json(
-        {
-          error: "Gemini API key is missing.",
-        },
+        { error: "Gemini API key is missing." },
         { status: 500 }
       );
     }
@@ -48,7 +35,7 @@ You are a professional SEO blog writer.
 
 Write a high-quality, publication-ready blog about:
 
-"${cleanTopic}"
+"${topic.trim()}"
 
 Requirements:
 
@@ -66,7 +53,6 @@ Requirements:
 - Make the article useful and informative.
 - Use a professional, natural and human writing style.
 - Vary sentence length and paragraph structure.
-- Do not use generic AI-style phrases.
 - Do not mention AI, Gemini, prompts, language models, or content generation.
 - Do not invent statistics, studies, quotes, organizations, dates, or unsupported facts.
 - If a specific fact is uncertain, use careful general wording.
@@ -77,100 +63,96 @@ Use clean Markdown formatting.
 Return ONLY the finished blog article in Markdown.
 `;
 
-    console.log("Starting Gemini generation...");
-    console.log("Model: gemini-3.6-flash");
-    console.log("Topic:", cleanTopic);
+    const models = [
+      "gemini-3.8-flash",
+      "gemini-3.5-flash-lite",
+    ];
 
-    try {
-      const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
-        contents: prompt,
-      });
+    let lastError: unknown = null;
 
-      console.log("Gemini response received.");
+    for (const model of models) {
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          console.log(
+            `Gemini request: ${model}, attempt ${attempt}`
+          );
 
-      const blog = response.text;
+          const response = await ai.models.generateContent({
+            model,
+            contents: prompt,
+          });
 
-      console.log(
-        "Gemini text length:",
-        blog ? blog.length : 0
-      );
+          const blog = response.text?.trim();
 
-      if (!blog || !blog.trim()) {
-        console.error(
-          "Gemini returned an empty response."
-        );
+          if (blog) {
+            console.log(
+              `Gemini generation successful using ${model}`
+            );
 
-        return NextResponse.json(
-          {
-            error: "Gemini returned empty content.",
-          },
-          { status: 502 }
-        );
-      }
+            return NextResponse.json(
+              {
+                content: blog,
+              },
+              { status: 200 }
+            );
+          }
 
-      console.log("Blog generated successfully.");
+          lastError = new Error(
+            "Gemini returned empty content."
+          );
+        } catch (error: unknown) {
+          lastError = error;
 
-      return NextResponse.json(
-        {
-          content: blog.trim(),
-        },
-        { status: 200 }
-      );
-    } catch (error: unknown) {
-      console.error("========== GEMINI ERROR ==========");
-      console.error(error);
-      console.error("===================================");
+          console.error(
+            `Gemini error: ${model}, attempt ${attempt}`,
+            error
+          );
 
-      let message = "Unknown Gemini error";
-      let status: number | undefined;
+          const errorText =
+            error instanceof Error
+              ? error.message
+              : JSON.stringify(error);
 
-      if (error instanceof Error) {
-        message = error.message;
-      }
+          const isTemporaryError =
+            errorText.includes("503") ||
+            errorText.includes("UNAVAILABLE") ||
+            errorText.includes("high demand") ||
+            errorText.includes("429") ||
+            errorText.includes("RESOURCE_EXHAUSTED");
 
-      if (
-        typeof error === "object" &&
-        error !== null &&
-        "status" in error
-      ) {
-        const possibleStatus = (
-          error as { status?: unknown }
-        ).status;
+          if (!isTemporaryError) {
+            break;
+          }
 
-        if (typeof possibleStatus === "number") {
-          status = possibleStatus;
+          if (attempt < 3) {
+            await sleep(1500 * attempt);
+          }
         }
       }
-
-      console.error("Gemini status:", status);
-      console.error("Gemini message:", message);
-
-      return NextResponse.json(
-        {
-          error: "Gemini API request failed.",
-          details: message,
-          status,
-        },
-        {
-          status: status && status >= 400 && status < 600
-            ? status
-            : 500,
-        }
-      );
     }
-  } catch (error) {
+
+    const message =
+      lastError instanceof Error
+        ? lastError.message
+        : "Gemini API is temporarily unavailable.";
+
+    return NextResponse.json(
+      {
+        error: message,
+      },
+      { status: 503 }
+    );
+  } catch (error: unknown) {
     console.error("Generate route error:", error);
 
     const message =
       error instanceof Error
         ? error.message
-        : "Unknown server error";
+        : "Unable to generate the blog.";
 
     return NextResponse.json(
       {
-        error: "Unable to generate the blog.",
-        details: message,
+        error: message,
       },
       { status: 500 }
     );

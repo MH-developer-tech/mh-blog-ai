@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   useEffect,
@@ -83,7 +83,7 @@ const HOW_IT_WORKS = [
   {
     step: "02",
     title: "AI writes the draft",
-    text: "Choose a tone, length and optional SEO keywords — AI generates a structured blog in seconds.",
+    text: "Choose a tone, length and optional SEO keywords â€” AI generates a structured blog in seconds.",
   },
   {
     step: "03",
@@ -94,17 +94,17 @@ const HOW_IT_WORKS = [
 
 const FEATURES = [
   {
-    icon: "✦",
+    icon: "âœ¦",
     title: "AI Writing",
     text: "Generate structured and professional content from simple ideas.",
   },
   {
-    icon: "◈",
+    icon: "â—ˆ",
     title: "Voice Input",
     text: "Speak your idea and turn it into a writing prompt instantly.",
   },
   {
-    icon: "↗",
+    icon: "â†—",
     title: "Personal Workspace",
     text: "Save, edit and manage your generated content in one place.",
   },
@@ -117,7 +117,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "Can I edit the tone or length after generating?",
-    a: 'Yes — change the tone, length or keywords and generate again, or use "Enhance Style" to refine the existing draft.',
+    a: 'Yes â€” change the tone, length or keywords and generate again, or use "Enhance Style" to refine the existing draft.',
   },
   {
     q: "Where are my saved blogs stored?",
@@ -426,6 +426,32 @@ export default function HomePage() {
       null
     );
 
+  const loadSavedBlogs = async (
+    userId: string
+  ) => {
+    const { data, error: fetchError } =
+      await supabase
+        .from("blogs")
+        .select(
+          "id,title,topic,content,created_at"
+        )
+        .eq("user_id", userId)
+        .order("created_at", {
+          ascending: false,
+        });
+
+    if (fetchError) {
+      console.error(
+        "Failed to load blogs:",
+        fetchError
+      );
+      return;
+    }
+
+    setSavedBlogs(
+      (data as SavedBlog[]) || []
+    );
+  };
   useEffect(() => {
     let mounted = true;
 
@@ -508,33 +534,6 @@ export default function HomePage() {
     };
   }, []);
 
-  const loadSavedBlogs = async (
-    userId: string
-  ) => {
-    const { data, error: fetchError } =
-      await supabase
-        .from("blogs")
-        .select(
-          "id,title,topic,content,created_at"
-        )
-        .eq("user_id", userId)
-        .order("created_at", {
-          ascending: false,
-        });
-
-    if (fetchError) {
-      console.error(
-        "Failed to load blogs:",
-        fetchError
-      );
-      return;
-    }
-
-    setSavedBlogs(
-      (data as SavedBlog[]) || []
-    );
-  };
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -554,7 +553,7 @@ export default function HomePage() {
       return;
     }
 
-    // Guarded at the call site (button), but kept here too as a safety net —
+    // Guarded at the call site (button), but kept here too as a safety net â€”
     // this should never actually fire from the UI anymore.
     if (!user) {
       return;
@@ -1185,6 +1184,41 @@ export default function HomePage() {
             >
               FAQ
             </button>
+                        <div className="group relative">
+  <button
+    type="button"
+    onClick={() => router.push("/about")}
+    className="text-sm font-semibold text-[#666666] transition hover:text-[#111111]"
+  >
+    About
+  </button>
+
+  <div className="invisible absolute left-1/2 top-full z-50 mt-3 w-40 -translate-x-1/2 rounded-xl border border-black/10 bg-white p-2 shadow-lg opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100">
+    <button
+      type="button"
+      onClick={() => router.push("/contact")}
+      className="block w-full rounded-lg px-4 py-2 text-left text-sm font-semibold text-[#666666] hover:bg-black/5 hover:text-[#C9A227]"
+    >
+      Contact
+    </button>
+
+    <button
+      type="button"
+      onClick={() => router.push("/privacy")}
+      className="block w-full rounded-lg px-4 py-2 text-left text-sm font-semibold text-[#666666] hover:bg-black/5 hover:text-[#C9A227]"
+    >
+      Privacy
+    </button>
+
+    <button
+      type="button"
+      onClick={() => router.push("/terms")}
+      className="block w-full rounded-lg px-4 py-2 text-left text-sm font-semibold text-[#666666] hover:bg-black/5 hover:text-[#C9A227]"
+    >
+      Terms
+    </button>
+  </div>
+</div>
           </div>
 
           <div className="flex items-center gap-2">
@@ -1248,7 +1282,7 @@ export default function HomePage() {
               <p className="mx-auto mt-7 max-w-2xl text-base leading-8 text-[#666666] sm:text-lg">
                 MHBlogAI helps you turn rough ideas,
                 notes and outlines into polished,
-                structured content — with the tone,
+                structured content â€” with the tone,
                 length and style you choose.
               </p>
 
@@ -1267,7 +1301,7 @@ export default function HomePage() {
                 >
                   Start Creating
                   <span className="transition-transform duration-300 group-hover:translate-x-1">
-                    →
+                    â†’
                   </span>
                 </button>
 
@@ -1604,7 +1638,7 @@ export default function HomePage() {
                       />
                     </div>
 
-                    {/* Generate button — gated on sign-in. If the user isn't
+                    {/* Generate button â€” gated on sign-in. If the user isn't
                         signed in, this NEVER calls generateBlog (so no error
                         is ever thrown) and instead sends them to /login. */}
                     <button
@@ -1645,7 +1679,7 @@ export default function HomePage() {
                         <>
                           Generate Blog
                           <span className="transition-transform duration-300 group-hover:translate-x-1">
-                            →
+                            â†’
                           </span>
                         </>
                       )}
@@ -1700,7 +1734,7 @@ export default function HomePage() {
                     </h2>
 
                     <p className="mt-2 text-xs font-bold uppercase tracking-wide text-black/35">
-                      {wordCount} words · {readingTime} min read · {tone} tone
+                      {wordCount} words Â· {readingTime} min read Â· {tone} tone
                     </p>
                   </div>
 
@@ -1711,7 +1745,7 @@ export default function HomePage() {
                       disabled={enhancing}
                       className="rounded-full border border-[#C9A227]/40 bg-[#C9A227]/5 px-4 py-2.5 text-xs font-bold text-[#8d6c08] transition hover:bg-[#C9A227] hover:text-white disabled:opacity-60"
                     >
-                      {enhancing ? "Enhancing..." : "✦ Enhance Style"}
+                      {enhancing ? "Enhancing..." : "âœ¦ Enhance Style"}
                     </button>
 
                     <button
@@ -1808,7 +1842,7 @@ export default function HomePage() {
 
                       <div className="flex items-center justify-between">
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#C9A227]/10 text-[#C9A227] transition-transform duration-300 group-hover:scale-105">
-                          ✦
+                          âœ¦
                         </div>
 
                         {cardDate && !isEditing && (
@@ -2011,7 +2045,7 @@ export default function HomePage() {
                   }}
                   className="mt-8 rounded-full bg-[#C9A227] px-8 py-4 text-sm font-black text-white transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-[#b38d1e] hover:shadow-xl"
                 >
-                  {user ? "Create with AI →" : "Sign In to Start →"}
+                  {user ? "Create with AI â†’" : "Sign In to Start â†’"}
                 </button>
               </div>
             </div>
@@ -2063,11 +2097,42 @@ export default function HomePage() {
               >
                 FAQ
               </button>
+
+              <button
+                type="button"
+                onClick={() => router.push("/about")}
+                className="transition-colors duration-300 hover:text-[#C9A227]"
+              >
+                About
+              </button>
+                            <button
+                type="button"
+                onClick={() => router.push("/contact")}
+                className="transition-colors duration-300 hover:text-[#C9A227]"
+              >
+                Contact
+              </button>
+
+              <button
+                type="button"
+                onClick={() => router.push("/privacy")}
+                className="transition-colors duration-300 hover:text-[#C9A227]"
+              >
+                Privacy
+              </button>
+
+              <button
+                type="button"
+                onClick={() => router.push("/terms")}
+                className="transition-colors duration-300 hover:text-[#C9A227]"
+              >
+                Terms
+              </button>
             </div>
           </div>
 
           <div className="mt-10 border-t border-black/[0.06] pt-6 text-center text-sm text-black/40">
-            © {new Date().getFullYear()} MHBlogAI. All rights reserved.
+            Â© {new Date().getFullYear()} MHBlogAI. All rights reserved.
           </div>
         </div>
       </footer>
@@ -2096,3 +2161,5 @@ export default function HomePage() {
     </main>
   );
 }
+
+

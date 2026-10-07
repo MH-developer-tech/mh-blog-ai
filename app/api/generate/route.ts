@@ -1,9 +1,5 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
-
-const sleep = (ms: number) =>
-  new Promise((resolve) => setTimeout(resolve, ms));
 
 export async function POST(request: Request) {
   try {
@@ -63,84 +59,29 @@ Use clean Markdown formatting.
 Return ONLY the finished blog article in Markdown.
 `;
 
-    const models = [
-      "gemini-3.8-flash",
-      "gemini-3.5-flash-lite",
-    ];
+    console.log("Gemini request: gemini-3.5-flash-lite");
 
-    let lastError: unknown = null;
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash-lite",
+      contents: prompt,
+    });
 
-    for (const model of models) {
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-          console.log(
-            `Gemini request: ${model}, attempt ${attempt}`
-          );
+    const blog = response.text?.trim();
 
-          const response = await ai.models.generateContent({
-            model,
-            contents: prompt,
-          });
-
-          const blog = response.text?.trim();
-
-          if (blog) {
-            console.log(
-              `Gemini generation successful using ${model}`
-            );
-
-            return NextResponse.json(
-              {
-                content: blog,
-              },
-              { status: 200 }
-            );
-          }
-
-          lastError = new Error(
-            "Gemini returned empty content."
-          );
-        } catch (error: unknown) {
-          lastError = error;
-
-          console.error(
-            `Gemini error: ${model}, attempt ${attempt}`,
-            error
-          );
-
-          const errorText =
-            error instanceof Error
-              ? error.message
-              : JSON.stringify(error);
-
-          const isTemporaryError =
-            errorText.includes("503") ||
-            errorText.includes("UNAVAILABLE") ||
-            errorText.includes("high demand") ||
-            errorText.includes("429") ||
-            errorText.includes("RESOURCE_EXHAUSTED");
-
-          if (!isTemporaryError) {
-            break;
-          }
-
-          if (attempt < 3) {
-            await sleep(1500 * attempt);
-          }
-        }
-      }
+    if (!blog) {
+      return NextResponse.json(
+        { error: "Gemini returned empty content." },
+        { status: 503 }
+      );
     }
 
-    const message =
-      lastError instanceof Error
-        ? lastError.message
-        : "Gemini API is temporarily unavailable.";
+    console.log("Gemini generation successful");
 
     return NextResponse.json(
       {
-        error: message,
+        content: blog,
       },
-      { status: 503 }
+      { status: 200 }
     );
   } catch (error: unknown) {
     console.error("Generate route error:", error);

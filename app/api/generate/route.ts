@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
 
@@ -22,9 +23,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const ai = new GoogleGenAI({
-      apiKey,
-    });
+    const ai = new GoogleGenAI({ apiKey });
 
     const prompt = `
 You are a professional SEO blog writer.
@@ -61,16 +60,77 @@ Return ONLY the finished blog article in Markdown.
 
     console.log("Gemini request: gemini-3.5-flash-lite");
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash-lite",
-      contents: prompt,
-    });
+    let response;
+    let lastError: unknown;
+
+    // Retry up to 3 times for temporary server errors
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        response = await ai.models.generateContent({
+          model: "gemini-3.5-flash-lite",
+          contents: prompt,
+        });
+
+        break;
+      } catch (error: unknown) {
+        lastError = error;
+
+        const err = error as {
+          status?: number;
+          code?: number | string;
+          message?: string;
+        };
+
+        const status = Number(err.status ?? err.code ?? 0);
+        const message = err.message ?? String(error);
+
+        const retryable =
+          status === 429 ||
+          status >= 500 ||
+          /high demand|overloaded|unavailable|temporarily|503|429/i.test(message);
+
+        console.error(`Gemini attempt ${attempt} failed:`, message);
+
+        if (!retryable || attempt === 3) {
+          break;
+        }
+
+        // Wait before retrying
+        await new Promise((resolve) =>
+          setTimeout(resolve, 1500 * attempt)
+        );
+      }
+    }
+
+    if (!response) {
+      const err = lastError as {
+        status?: number;
+        code?: number | string;
+      } | undefined;
+
+      const status = Number(err?.status ?? err?.code ?? 0);
+
+      if (status === 429 || status >= 500) {
+        return NextResponse.json(
+          {
+            error:
+              "AI service is temporarily busy. Please try again in a minute.",
+          },
+          { status: 503 }
+        );
+      }
+
+      return NextResponse.json(
+        { error: "Unable to generate your blog. Please try again." },
+        { status: 500 }
+      );
+    }
 
     const blog = response.text?.trim();
 
     if (!blog) {
       return NextResponse.json(
-        { error: "Gemini returned empty content." },
+        { error: "Gemini returned empty content. Please try again." },
         { status: 503 }
       );
     }
@@ -78,22 +138,16 @@ Return ONLY the finished blog article in Markdown.
     console.log("Gemini generation successful");
 
     return NextResponse.json(
-      {
-        content: blog,
-      },
+      { content: blog },
       { status: 200 }
     );
+
   } catch (error: unknown) {
     console.error("Generate route error:", error);
 
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Unable to generate the blog.";
-
     return NextResponse.json(
       {
-        error: message,
+        error: "Something went wrong. Please try again later.",
       },
       { status: 500 }
     );

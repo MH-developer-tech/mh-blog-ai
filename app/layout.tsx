@@ -24,11 +24,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
-        <script 
-  async 
-  src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6957593519475237"
-  crossOrigin="anonymous">
-</script>
+       <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1870646159401368"
+     crossOrigin="anonymous"></script>
       </head>
 
       <body className="min-h-full flex flex-col">{children}</body>
